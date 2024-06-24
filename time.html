@@ -11,7 +11,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        :fullscreen .time {
+        .fullscreen .time {
             text-align: center;
             margin-top: 10vh;
         }
@@ -28,11 +28,11 @@
             display: inline-block;
         }
 
-        body:fullscreen>* {
+        main:has(.fullscreen)>* {
             display: none;
         }
 
-        body:fullscreen>.container {
+        .fullscreen.container {
             display: block;
             width: 100%;
         }
@@ -40,25 +40,31 @@
 </head>
 
 <body class="colorDesign">
-    <h1>Date-Time <button id="fullcreenAll">&#x26f6;</button></h1>
-    <input type="checkbox" id="isUTC"><label for="isUTC" style="margin-right: 20px;">Use UTC Time</label>
-    <input type="checkbox" id="isDarkDesign"><label for="isDarkDesign" style="margin-right: 20px;">Dark Design</label>
-    <input type="checkbox" id="isServerTime" disabled><label for="isServerTime" style="margin-right: 20px;">Use server
-        Time</label>
-    <h2>Current <button id="fullcreenCurrent">&#x26f6;</button></h2>
-    <div class="colorDesign container">
-        <span id="currTime" class="time"></span>
-    </div>
-    <p></p>
-    <h2>Delta Time <button id="fullcreenDelta">&#x26f6;</button></h2>
-    <p><input type="datetime-local" id="deltaInput"> = <span id="dstOut"></span></p>
-    <div class="colorDesign container">
-        <span id="deltaTime" class="time"></span><br>
-        <span id="deltaTimeSplit" class="time"></span>
-    </div>
-    <h2>Difference to Server</h2>
-    <span id="diffToServerOut" class="time"></span>
-
+    <main>
+        <h1>Date-Time <button class="fullscreenBtn" element="all">&#x26f6;</button><button class="maximizeBtn"
+                element="all">&#x21f1;</button></h1>
+        <input type="checkbox" id="isUTC"><label for="isUTC" style="margin-right: 20px;">Use UTC Time</label>
+        <input type="checkbox" id="isDarkDesign"><label for="isDarkDesign" style="margin-right: 20px;">Dark
+            Design</label>
+        <input type="checkbox" id="isServerTime" disabled><label for="isServerTime" style="margin-right: 20px;">Use
+            server
+            Time</label>
+        <h2>Current <button class="fullscreenBtn" element="currTime">&#x26f6;</button><button class="maximizeBtn"
+                element="currTime">&#x21f1;</button></h2>
+        <div class="colorDesign container">
+            <span id="currTime" class="time"></span>
+        </div>
+        <p></p>
+        <h2>Delta Time <button class="fullscreenBtn" element="deltaTime">&#x26f6;</button><button class="maximizeBtn"
+                element="deltaTime">&#x21f1;</button></h2>
+        <p><input type="datetime-local" id="deltaInput"> = <span id="dstOut"></span></p>
+        <div class="colorDesign container">
+            <span id="deltaTime" class="time"></span><br>
+            <span id="deltaTimeSplit" class="time"></span>
+        </div>
+        <h2>Difference to Server</h2>
+        <span id="diffToServerOut" class="time"></span>
+    </main>
     <script>
         const currTime = document.getElementById("currTime");
         const deltaInput = document.getElementById("deltaInput");
@@ -67,11 +73,14 @@
         const isUTC = document.getElementById("isUTC");
         const dstOut = document.getElementById("dstOut");
         const isDarkDesign = document.getElementById("isDarkDesign");
-        const fullcreenCurrent = document.getElementById("fullcreenCurrent");
-        const fullcreenDelta = document.getElementById("fullcreenDelta");
-        const fullcreenAll = document.getElementById("fullcreenAll");
         const isServerTime = document.getElementById("isServerTime");
         const diffToServerOut = document.getElementById("diffToServerOut");
+        const main = document.getElementsByTagName("main")[0];
+        const fullscreenable = {
+            "currTime": currTime.parentElement,
+            "deltaTime": deltaTime.parentElement,
+            "all": document.body
+        }
 
         let dstTime = new Date();
         let diffToServer = NaN;
@@ -104,7 +113,47 @@
                 ':' + pad(Math.abs(timeZoneMinutes) % 60);
         }
 
-        function onInputChange() {
+        function storeSettings() {
+            const settings = {
+                utc: !!isUTC.checked,
+                dark: !!isDarkDesign.checked,
+                serverTime: !!isServerTime.checked,
+                dstTime: deltaInput.value
+            };
+            window.localStorage.setItem("timeSettings", JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            try {
+                const settings = {
+                    ...JSON.parse(window.localStorage.getItem("timeSettings") ?? "{}"),
+                    ...Object.fromEntries(new URL(window.location).searchParams.entries())
+                };
+                if (typeof settings.utc === "boolean") {
+                    isUTC.checked = settings.utc
+                }
+                if (typeof settings.dark === "boolean") {
+                    isDarkDesign.checked = settings.dark
+                }
+                if (typeof settings.serverTime === "boolean") {
+                    isServerTime.checked = settings.serverTime
+                }
+                if (typeof settings.dstTime === "string") {
+                    deltaInput.value = settings.dstTime;
+                }
+                if (typeof settings.fullscreen === "string" && !!fullscreenable[settings.fullscreen]) {
+                    console.log("Fulscreening ", settings.fullscreen)
+                    fullscreen(settings.fullscreen, false);
+                }
+                onInputChange(false);
+                onDarkDesign(false);
+                onUseServerTime(false);
+            } catch (err) {
+                console.error("Parsing stored settings ", err);
+            }
+        }
+
+        function onInputChange(store = true) {
             dstTime = new Date(deltaInput.value + (isUTC.checked ? "Z" : ""));
             if (isNaN(dstTime)) {
                 const now = new Date();
@@ -114,6 +163,9 @@
                 dstOut.innerText = dstTime.toISOString();
             } else {
                 dstOut.innerText = toLocalISO(dstTime);
+            }
+            if (store) {
+                storeSettings();
             }
         }
 
@@ -139,7 +191,7 @@
             deltaTimeSplit.innerText = splitStr;
         }
 
-        function onDarkDesign() {
+        function onDarkDesign(store = true) {
             if (isDarkDesign.checked) {
                 for (const element of document.getElementsByClassName("colorDesign")) {
                     document.body.style.color = "white";
@@ -151,10 +203,33 @@
                     document.body.style.background = "white";
                 }
             }
+            if (store) {
+                storeSettings();
+            }
         }
 
-        function fullscreen(element) {
-            element.requestFullscreen({ navigationUI: "auto" });
+        function fullscreen(elementName, requestFullscreen = true) {
+            const element = fullscreenable[elementName];
+            if (element) {
+                element.classList.add("fullscreen");
+
+                const currUrl = new URL(window.location);
+                currUrl.searchParams.set("fullscreen", elementName);
+                window.history.replaceState({}, "", currUrl);
+
+                if (requestFullscreen) {
+                    document.body.requestFullscreen({ navigationUI: "auto" });
+                }
+            }
+        }
+
+        function exitFullscreen() {
+            for (const div of document.getElementsByClassName("fullscreen")) {
+                div.classList.remove("fullscreen");
+            }
+            const currUrl = new URL(window.location);
+            currUrl.searchParams.delete("fullscreen");
+            window.history.replaceState({}, "", currUrl);
         }
 
         async function getServerTime() {
@@ -190,7 +265,7 @@
             setTimeout(serverTimeTimer, 2000);
         }
 
-        function onUseServerTime() {
+        function onUseServerTime(store = true) {
             if (isServerTime.checked) {
                 if (!isNaN(diffToServer)) {
                     useServerTime = true;
@@ -199,18 +274,37 @@
             } else {
                 useServerTime = false;
             }
+            if (store) {
+                storeSettings();
+            }
+        }
+
+        function onKeyDown(e) {
+            if (e.key == "Escape") {
+                exitFullscreen();
+            }
+        }
+
+        function onFullscreenChange() {
+            if (!document.fullscreenElement) {
+                exitFullscreen();
+            }
         }
 
         deltaInput.addEventListener("input", onInputChange);
         isUTC.addEventListener("input", onInputChange);
         isDarkDesign.addEventListener("input", onDarkDesign);
-        fullcreenCurrent.addEventListener("click", fullscreen.bind(this, currTime.parentElement));
-        fullcreenDelta.addEventListener("click", fullscreen.bind(this, deltaTime.parentElement));
-        fullcreenAll.addEventListener("click", fullscreen.bind(this, document.body));
+        for (const btn of document.getElementsByClassName("fullscreenBtn")) {
+            btn.addEventListener("click", fullscreen.bind(this, btn.getAttribute("element")));
+        }
+        for (const btn of document.getElementsByClassName("maximizeBtn")) {
+            btn.addEventListener("click", fullscreen.bind(this, btn.getAttribute("element"), false));
+        }
         isServerTime.addEventListener("input", onUseServerTime);
+        document.addEventListener("keydown", onKeyDown);
+        document.addEventListener("fullscreenchange", onFullscreenChange);
 
-        onInputChange();
-        onDarkDesign();
+        loadSettings();
         getServerTime();
         setInterval(drawTime, 10);
         serverTimeTimer();
