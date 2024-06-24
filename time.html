@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Time</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :fullscreen .time {
+            text-align: center;
+            margin-top: 10vh;
+        }
+
+        .time {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            font-size: 50pt;
+            font-size: 5vw;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .container {
+            display: inline-block;
+        }
+
+        body:fullscreen>* {
+            display: none;
+        }
+
+        body:fullscreen>.container {
+            display: block;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="colorDesign">
+    <h1>Date-Time <button id="fullcreenAll">&#x26f6;</button></h1>
+    <input type="checkbox" id="isUTC"><label for="isUTC" style="margin-right: 20px;">Use UTC Time</label>
+    <input type="checkbox" id="isDarkDesign"><label for="isDarkDesign" style="margin-right: 20px;">Dark Design</label>
+    <input type="checkbox" id="isServerTime" disabled><label for="isServerTime" style="margin-right: 20px;">Use server
+        Time</label>
+    <h2>Current <button id="fullcreenCurrent">&#x26f6;</button></h2>
+    <div class="colorDesign container">
+        <span id="currTime" class="time"></span>
+    </div>
+    <p></p>
+    <h2>Delta Time <button id="fullcreenDelta">&#x26f6;</button></h2>
+    <p><input type="datetime-local" id="deltaInput"> = <span id="dstOut"></span></p>
+    <div class="colorDesign container">
+        <span id="deltaTime" class="time"></span><br>
+        <span id="deltaTimeSplit" class="time"></span>
+    </div>
+    <h2>Difference to Server</h2>
+    <span id="diffToServerOut" class="time"></span>
+
+    <script>
+        const currTime = document.getElementById("currTime");
+        const deltaInput = document.getElementById("deltaInput");
+        const deltaTime = document.getElementById("deltaTime");
+        const deltaTimeSplit = document.getElementById("deltaTimeSplit");
+        const isUTC = document.getElementById("isUTC");
+        const dstOut = document.getElementById("dstOut");
+        const isDarkDesign = document.getElementById("isDarkDesign");
+        const fullcreenCurrent = document.getElementById("fullcreenCurrent");
+        const fullcreenDelta = document.getElementById("fullcreenDelta");
+        const fullcreenAll = document.getElementById("fullcreenAll");
+        const isServerTime = document.getElementById("isServerTime");
+        const diffToServerOut = document.getElementById("diffToServerOut");
+
+        let dstTime = new Date();
+        let diffToServer = NaN;
+        let useServerTime = false;
+
+        function pad(val, len = 2, sign = false) {
+            if (sign) {
+                if (val >= 0) {
+                    return "+" + val.toString(10).padStart(len, "0");
+                } else {
+                    return "-" + (-val).toString(10).padStart(len, "0");
+                }
+            } else {
+                return val.toString(10).padStart(len, "0");
+            }
+        }
+
+        function toLocalISO(date) {
+            const timeZoneMinutes = -date.getTimezoneOffset();
+            const timeZoneSign = timeZoneMinutes >= 0 ? '+' : '-';
+
+            return pad(date.getFullYear(), 4) +
+                '-' + pad(date.getMonth() + 1) +
+                '-' + pad(date.getDate()) +
+                'T' + pad(date.getHours()) +
+                ':' + pad(date.getMinutes()) +
+                ':' + pad(date.getSeconds()) +
+                '.' + pad(date.getMilliseconds(), 3) +
+                timeZoneSign + pad(Math.floor(Math.abs(timeZoneMinutes) / 60)) +
+                ':' + pad(Math.abs(timeZoneMinutes) % 60);
+        }
+
+        function onInputChange() {
+            dstTime = new Date(deltaInput.value + (isUTC.checked ? "Z" : ""));
+            if (isNaN(dstTime)) {
+                const now = new Date();
+                dstTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+            }
+            if (isUTC.checked) {
+                dstOut.innerText = dstTime.toISOString();
+            } else {
+                dstOut.innerText = toLocalISO(dstTime);
+            }
+        }
+
+        function drawTime() {
+            const now = useServerTime ? new Date(Date.now() + diffToServer) : new Date();
+            if (isUTC.checked) {
+                currTime.innerText = now.toISOString();
+            } else {
+                currTime.innerText = toLocalISO(now);
+            }
+            let deltaMs = dstTime.getTime() - now.getTime();
+            deltaTime.innerText = `${(deltaMs / 1000).toFixed(3).padStart(2, "0")}s`;
+            let splitStr = "";
+            splitStr = `${pad(deltaMs % 1000, 3, true)}ms\n` + splitStr;
+            deltaMs = Math.trunc(deltaMs / 1000);
+            splitStr = `${pad(deltaMs % 60, 2, true)}s` + splitStr;
+            deltaMs = Math.trunc(deltaMs / 60);
+            splitStr = `${pad(deltaMs % 60, 2, true)}min\n` + splitStr;
+            deltaMs = Math.trunc(deltaMs / 60);
+            splitStr = `${pad(deltaMs % 24, 2, true)}h` + splitStr;
+            deltaMs = Math.trunc(deltaMs / 24);
+            splitStr = `=${pad(deltaMs)}d` + splitStr;
+            deltaTimeSplit.innerText = splitStr;
+        }
+
+        function onDarkDesign() {
+            if (isDarkDesign.checked) {
+                for (const element of document.getElementsByClassName("colorDesign")) {
+                    document.body.style.color = "white";
+                    document.body.style.background = "black";
+                }
+            } else {
+                for (const element of document.getElementsByClassName("colorDesign")) {
+                    document.body.style.color = "black";
+                    document.body.style.background = "white";
+                }
+            }
+        }
+
+        function fullscreen(element) {
+            element.requestFullscreen({ navigationUI: "auto" });
+        }
+
+        async function getServerTime() {
+            try {
+                const startReq = Date.now();
+                const res = await (await fetch("./server_time")).text();
+                const time = parseFloat(res) * 1000;
+                const endReq = Date.now();
+                if (!isNaN(time)) {
+                    isServerTime.disabled = false;
+                    diffToServer = time - endReq - (endReq - startReq) / 2;
+                    if (isServerTime.checked) {
+                        useServerTime = true;
+                    }
+                    diffToServerOut.innerText = `${diffToServer}ms\nRound trip: ${endReq - startReq}ms`;
+                } else {
+                    useServerTime = false;
+                    diffToServer = NaN;
+                    isServerTime.disabled = true;
+                    diffToServerOut.innerText = "-- Server time not available --";
+                }
+            } catch (err) {
+                console.log("Error fetching server time ", err);
+                useServerTime = false;
+                diffToServer = NaN;
+                isServerTime.disabled = true;
+                diffToServerOut.innerText = "-- Server time not available --";
+            }
+        }
+
+        async function serverTimeTimer() {
+            await getServerTime();
+            setTimeout(serverTimeTimer, 2000);
+        }
+
+        function onUseServerTime() {
+            if (isServerTime.checked) {
+                if (!isNaN(diffToServer)) {
+                    useServerTime = true;
+                }
+                getServerTime();
+            } else {
+                useServerTime = false;
+            }
+        }
+
+        deltaInput.addEventListener("input", onInputChange);
+        isUTC.addEventListener("input", onInputChange);
+        isDarkDesign.addEventListener("input", onDarkDesign);
+        fullcreenCurrent.addEventListener("click", fullscreen.bind(this, currTime.parentElement));
+        fullcreenDelta.addEventListener("click", fullscreen.bind(this, deltaTime.parentElement));
+        fullcreenAll.addEventListener("click", fullscreen.bind(this, document.body));
+        isServerTime.addEventListener("input", onUseServerTime);
+
+        onInputChange();
+        onDarkDesign();
+        getServerTime();
+        setInterval(drawTime, 10);
+        serverTimeTimer();
+    </script>
+</body>
+
+</html>
