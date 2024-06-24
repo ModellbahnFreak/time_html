@@ -28,12 +28,12 @@
             display: inline-block;
         }
 
-        main:has(.fullscreen)>* {
+        main.fullscreenActive>* {
             display: none;
         }
 
         .fullscreen.container {
-            display: block;
+            display: block !important;
             width: 100%;
         }
     </style>
@@ -123,11 +123,26 @@
             window.localStorage.setItem("timeSettings", JSON.stringify(settings));
         }
 
+        function stringSettingsToObject() {
+            const stringSettings = Object.fromEntries(new URL(window.location).searchParams.entries());
+            for (const key in stringSettings) {
+                if (Object.hasOwnProperty.call(stringSettings, key)) {
+                    const value = stringSettings[key];
+                    if (value === "true") {
+                        stringSettings[key] = true;
+                    } else if (value === "false") {
+                        stringSettings[key] = false;
+                    }
+                }
+            }
+            return stringSettings;
+        }
+
         function loadSettings() {
             try {
                 const settings = {
                     ...JSON.parse(window.localStorage.getItem("timeSettings") ?? "{}"),
-                    ...Object.fromEntries(new URL(window.location).searchParams.entries())
+                    ...stringSettingsToObject()
                 };
                 if (typeof settings.utc === "boolean") {
                     isUTC.checked = settings.utc
@@ -211,6 +226,8 @@
         function fullscreen(elementName, requestFullscreen = true) {
             const element = fullscreenable[elementName];
             if (element) {
+                exitFullscreen();
+                main.classList.add("fullscreenActive");
                 element.classList.add("fullscreen");
 
                 const currUrl = new URL(window.location);
@@ -224,6 +241,7 @@
         }
 
         function exitFullscreen() {
+            main.classList.remove("fullscreenActive");
             for (const div of document.getElementsByClassName("fullscreen")) {
                 div.classList.remove("fullscreen");
             }
