@@ -7,8 +7,15 @@
     <title>Device Time</title>
 
     <style>
+        :root {
+            --bg-color: white;
+            --text-color: black;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
 
         .fullscreen .time {
@@ -39,7 +46,7 @@
     </style>
 </head>
 
-<body class="colorDesign">
+<body>
     <main>
         <h1>Date-Time <button class="fullscreenBtn" element="all">&#x26f6;</button><button class="maximizeBtn"
                 element="all">&#x21f1;</button></h1>
@@ -51,14 +58,14 @@
             Time</label>
         <h2>Current <button class="fullscreenBtn" element="currTime">&#x26f6;</button><button class="maximizeBtn"
                 element="currTime">&#x21f1;</button></h2>
-        <div class="colorDesign container">
+        <div class="container">
             <span id="currTime" class="time"></span>
         </div>
         <p></p>
         <h2>Delta Time <button class="fullscreenBtn" element="deltaTime">&#x26f6;</button><button class="maximizeBtn"
                 element="deltaTime">&#x21f1;</button></h2>
         <p><input type="datetime-local" id="deltaInput"> = <span id="dstOut"></span></p>
-        <div class="colorDesign container">
+        <div class="container">
             <span id="deltaTime" class="time"></span><br>
             <span id="deltaTimeSplit" class="time"></span>
         </div>
@@ -208,15 +215,11 @@
 
         function onDarkDesign(store = true) {
             if (isDarkDesign.checked) {
-                for (const element of document.getElementsByClassName("colorDesign")) {
-                    document.body.style.color = "white";
-                    document.body.style.background = "black";
-                }
+                document.documentElement.style.setProperty("--bg-color", "black");
+                document.documentElement.style.setProperty("--text-color", "white");
             } else {
-                for (const element of document.getElementsByClassName("colorDesign")) {
-                    document.body.style.color = "black";
-                    document.body.style.background = "white";
-                }
+                document.documentElement.style.setProperty("--bg-color", "white");
+                document.documentElement.style.setProperty("--text-color", "black");
             }
             if (store) {
                 storeSettings();
