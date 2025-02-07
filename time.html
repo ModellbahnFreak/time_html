@@ -1,3 +1,27 @@
+<!-- 
+    time_html Copyright (c) 2023-present ModellbahnFreak
+
+    https://github.com/ModellbahnFreak/time_html
+
+    Licensed under the MIT License
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+-->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -35,35 +59,66 @@
             display: inline-block;
         }
 
-        main.fullscreenActive>* {
+        main.fullscreenActive:not(.fullscreen)>* {
             display: none;
         }
 
-        .fullscreen.container {
+        .fullscreen.container,
+        main.fullscreen .container {
             display: block !important;
             width: 100%;
+        }
+
+        .btnContainer {
+            font-size: 0;
+            vertical-align: middle;
+        }
+
+        button {
+            background: none;
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+            border-radius: 20%;
+            padding: 0.5em;
+            aspect-ratio: 1 / 1;
+            height: 2.5em;
+            margin-left: 0.5em;
+            margin-right: 0.5em;
         }
     </style>
 </head>
 
 <body>
     <main>
-        <h1>Date-Time <button class="fullscreenBtn" element="all">&#x26f6;</button><button class="maximizeBtn"
-                element="all">&#x21f1;</button></h1>
+        <form action="https://github.com/ModellbahnFreak/time_html">
+            <h1>Date-Time <span class="btnContainer">
+                    <button class="fullscreenBtn" element="all" type="button">&#x26f6;</button>
+                    <button class="maximizeBtn" element="all" type="button">&#x21f1;</button>
+                    <button>&#x1f517;</button>
+                </span>
+            </h1>
+        </form>
+        <p></p>
         <input type="checkbox" id="isUTC"><label for="isUTC" style="margin-right: 20px;">Use UTC Time</label>
         <input type="checkbox" id="isDarkDesign"><label for="isDarkDesign" style="margin-right: 20px;">Dark
             Design</label>
         <input type="checkbox" id="isServerTime" disabled><label for="isServerTime" style="margin-right: 20px;">Use
             server
             Time</label>
-        <h2>Current <button class="fullscreenBtn" element="currTime">&#x26f6;</button><button class="maximizeBtn"
-                element="currTime">&#x21f1;</button></h2>
+        <h2>Current <span class="btnContainer">
+                <button class="fullscreenBtn" element="currTime">&#x26f6;</button>
+                <button class="maximizeBtn" element="currTime">&#x21f1;</button>
+            </span>
+        </h2>
         <div class="container">
             <span id="currTime" class="time"></span>
         </div>
         <p></p>
-        <h2>Delta Time <button class="fullscreenBtn" element="deltaTime">&#x26f6;</button><button class="maximizeBtn"
-                element="deltaTime">&#x21f1;</button></h2>
+        <h2>Delta Time <span class="btnContainer">
+                <button class="fullscreenBtn" element="deltaTime">&#x26f6;</button>
+                <button class="maximizeBtn" element="deltaTime">&#x21f1;</button>
+            </span>
+        </h2>
         <p><input type="datetime-local" id="deltaInput"> = <span id="dstOut"></span></p>
         <div class="container">
             <span id="deltaTime" class="time"></span><br>
@@ -86,7 +141,7 @@
         const fullscreenable = {
             "currTime": currTime.parentElement,
             "deltaTime": deltaTime.parentElement,
-            "all": document.body
+            "all": main
         }
 
         let dstTime = new Date();
